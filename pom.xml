@@ -629,13 +629,18 @@
       <dependency>
         <groupId>com.sun.jersey</groupId>
         <artifactId>jersey-server</artifactId>
-        <version>1.9</version>
+        <version>1.19</version>
         <scope>${hadoop.deps.scope}</scope>
       </dependency>
+	<dependency>
+	  <groupId>org.ow2.asm</groupId>
+	  <artifactId>asm</artifactId>
+	  <version>5.0.1</version>
+	</dependency>
       <dependency>
         <groupId>com.sun.jersey</groupId>
         <artifactId>jersey-core</artifactId>
-        <version>1.9</version>
+        <version>1.19</version>
         <scope>${hadoop.deps.scope}</scope>
       </dependency>
       <dependency>
