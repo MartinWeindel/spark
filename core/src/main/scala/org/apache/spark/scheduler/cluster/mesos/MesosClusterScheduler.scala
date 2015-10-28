@@ -126,6 +126,7 @@ private[spark] class MesosClusterScheduler(
   private val queuedCapacity = conf.getInt("spark.mesos.maxDrivers", 200)
   private val retainedDrivers = conf.getInt("spark.mesos.retainedDrivers", 200)
   private val maxRetryWaitTime = conf.getInt("spark.mesos.cluster.retry.wait.max", 60) // 1 minute
+  private val slaveOfferConstraints = conf.getOption("spark.mesos.driver.constraints").map(parseConstraintString(_))
   private val schedulerState = engineFactory.createEngine("scheduler")
   private val stateLock = new ReentrantLock()
   private val finishedDrivers =
@@ -441,12 +442,21 @@ private[spark] class MesosClusterScheduler(
       afterLaunchCallback: (String) => Boolean,
       currentOffers: List[ResourceOffer],
       tasks: mutable.HashMap[OfferID, ArrayBuffer[TaskInfo]]): Unit = {
+      
+    def meetsAttributesConstraints(o: ResourceOffer): Boolean = slaveOfferConstraints match {
+      case Some(constraints) =>
+        val offerAttributes = toAttributeMap(o.offer.getAttributesList)
+        matchesAttributeRequirements(constraints, offerAttributes)
+      case None =>
+        true
+    }
+    
     for (submission <- candidates) {
       val driverCpu = submission.cores
       val driverMem = submission.mem
       logTrace(s"Finding offer to launch driver with cpu: $driverCpu, mem: $driverMem")
       val offerOption = currentOffers.find { o =>
-        o.cpu >= driverCpu && o.mem >= driverMem
+        o.cpu >= driverCpu && o.mem >= driverMem && meetsAttributesConstraints(o)
       }
       if (offerOption.isEmpty) {
         logDebug(s"Unable to find offer to launch driver id: ${submission.submissionId}, " +
